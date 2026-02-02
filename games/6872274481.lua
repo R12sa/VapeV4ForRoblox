@@ -10899,3 +10899,64 @@ run(function()
 		end,
 	})
 end)
+
+run(function()
+	local PromptExtender
+	local Distance
+	local oldDistances, connection = {}, nil
+	
+	local function applyPrompt(prompt)
+		if not prompt:IsA('ProximityPrompt') then return end
+		if oldDistances[prompt] == nil then
+			oldDistances[prompt] = prompt.MaxActivationDistance
+		end
+		prompt.MaxActivationDistance = Distance.Value
+	end
+	
+	local function restoreAll()
+		if connection then
+			connection:Disconnect()
+			connection = nil
+		end
+		for prompt, old in oldDistances do
+			if prompt and prompt.Parent then
+				prompt.MaxActivationDistance = old
+			end
+			oldDistances[prompt] = nil
+		end
+	end
+	
+	PromptExtender = vape.Categories.Utility:CreateModule({
+		Name = 'ProximityPromptExtender',
+		Function = function(callback)
+			if callback then
+				for _, d in workspace:GetDescendants() do
+					applyPrompt(d)
+				end
+				connection = workspace.DescendantAdded:Connect(applyPrompt)
+				PromptExtender:Clean(restoreAll)
+			else
+				restoreAll()
+			end
+		end,
+		Tooltip = 'Extends ProximityPrompt activation distance'
+	})
+	Distance = PromptExtender:CreateSlider({
+		Name = 'Distance',
+		Min = 1,
+		Max = 50,
+		Default = 20,
+		Function = function()
+			if PromptExtender.Enabled then
+				for prompt in oldDistances do
+					if prompt and prompt.Parent then
+						prompt.MaxActivationDistance = Distance.Value
+					end
+				end
+			end
+		end,
+		Suffix = function(val)
+			return val == 1 and 'stud' or 'studs'
+		end
+	})
+end)
