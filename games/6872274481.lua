@@ -10961,39 +10961,3 @@ run(function()
 	})
 end)
 
-run(function()
-	local AutoEmptyGameTP
-	local TeleportOnMatchEnd
-	
-	local function isGameEmpty()
-		return #playersService:GetPlayers() <= 1
-	end
-	
-	local function isEveryoneDead()
-		for _, player in playersService:GetPlayers() do
-			if player ~= lplr and player:GetAttribute("PlayingAsKit") then
-				if player.Character and player.Character:GetAttribute("Health") > 0 then
-					return false
-				end
-			end
-		end
-		return true
-	end
-	
-	local function teleportToNewGame()
-		if isGameEmpty() then return end 
-		
-		local TeleportService = game:GetService("TeleportService")
-		local data = TeleportService:GetLocalPlayerTeleportData()
-		
-		notif("AutoEmptyGameTP", "tping to new game...", 3)
-		task.wait(0.5) 
-		
-		AutoEmptyGameTP:Clean(TeleportService:Teleport(game.PlaceId, lplr, data))
-	end
-	
-	local function handleMatchCompletion()
-		if store.matchState == 2 then 
-			teleportToNewGame()
-		end
-	end
