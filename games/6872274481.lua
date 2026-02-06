@@ -10960,3 +10960,81 @@ run(function()
 		end
 	})
 end)
+
+run(function()
+	local AutoEmptyGameTP
+	local TeleportOnMatchEnd
+	
+	local function isGameEmpty()
+		return #playersService:GetPlayers() <= 1
+	end
+	
+	local function isEveryoneDead()
+		for _, player in playersService:GetPlayers() do
+			if player ~= lplr and player:GetAttribute("PlayingAsKit") then
+				if player.Character and player.Character:GetAttribute("Health") > 0 then
+					return false
+				end
+			end
+		end
+		return true
+	end
+	
+	local function teleportToNewGame()
+		if isGameEmpty() then return end 
+		
+		local TeleportService = game:GetService("TeleportService")
+		local data = TeleportService:GetLocalPlayerTeleportData()
+		
+		notif("AutoEmptyGameTP", "tping to new game...", 3)
+		task.wait(0.5) 
+		
+		AutoEmptyGameTP:Clean(TeleportService:Teleport(game.PlaceId, lplr, data))
+	end
+	
+	local function handleMatchCompletion()
+		if store.matchState == 2 then 
+			teleportToNewGame()
+		end
+	end
+	
+	AutoEmptyGameTP = vape.Categories.Blatant:CreateModule({
+		Name = 'AutoEmptyGameTP',
+		Function = function(callback)
+			
+			if callback then
+				if TeleportOnMatchEnd.Enabled then
+					AutoEmptyGameTP:Clean(vapeEvents.MatchEndEvent.Event:Connect(function(winTable)
+						task.wait(1) 
+						handleMatchCompletion()
+					end))
+					
+					AutoEmptyGameTP:Clean(vapeEvents.EntityDeathEvent.Event:Connect(function(deathTable)
+						if deathTable.finalKill and deathTable.entityInstance == lplr.Character then
+							task.wait(1) 
+							if isEveryoneDead() and store.matchState ~= 2 then
+								teleportToNewGame()
+							end
+						end
+					end))
+				else
+					if not isGameEmpty() then
+						notif("AutoEmptyGameTP", "finding empty game...", 4)
+						task.wait(1.5) 
+						teleportToNewGame()
+					else
+						notif("AutoEmptyGameTP", "already in empty game", 3)
+						AutoEmptyGameTP:Toggle() 
+					end
+				end
+			end
+		end,
+		Tooltip = 'teleports you to an empty\nuseful for resetting match history]'
+	})
+	
+	TeleportOnMatchEnd = AutoEmptyGameTP:CreateToggle({
+		Name = "Teleport After Match",
+		Default = true,
+		Tooltip = "waits until match ends (win/loss) before teleporting\ndisable for instant teleport to empty game(idea from soyred)"
+	})
+end)
